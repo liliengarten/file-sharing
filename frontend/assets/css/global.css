@@ -1,0 +1,81 @@
+/* ─────────────────────────────────────────
+   styles/global.css
+   Подключить в main.js:  import './styles/global.css'
+   ───────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:     #F7F5F2;
+  --ink:    #1A1A18;
+  --muted:  #8A8880;
+  --border: #E2DED8;
+  --accent: #C8562A;
+  --white:  #FDFCFB;
+}
+
+html, body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; }
+
+/* ─────────────────────────────────────────
+   router/index.js  (пример конфигурации)
+   ───────────────────────────────────────── */
+
+/*
+import { createRouter, createWebHistory } from 'vue-router'
+import HomeView    from '@/views/HomeView.vue'
+import LoginView   from '@/views/LoginView.vue'
+import RegisterView from '@/views/RegisterView.vue'
+import ProfileView from '@/views/ProfileView.vue'
+
+export default createRouter({
+  history: createWebHistory(),
+  routes: [
+    { path: '/',         component: HomeView,     meta: { requiresAuth: true } },
+    { path: '/login',    component: LoginView    },
+    { path: '/register', component: RegisterView },
+    { path: '/profile',  component: ProfileView,  meta: { requiresAuth: true } },
+    { path: '/profile/:username', component: ProfileView, meta: { requiresAuth: true } },
+  ],
+})
+*/
+
+/* ─────────────────────────────────────────
+   main.js
+   ───────────────────────────────────────── */
+
+/*
+import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router'
+import './styles/global.css'
+
+createApp(App).use(router).mount('#app')
+*/
+
+/* ─────────────────────────────────────────
+   App.vue  (минимальный shell)
+   ───────────────────────────────────────── */
+
+/*
+<template>
+  <RouterView />
+</template>
+
+<script setup>
+import { RouterView } from 'vue-router'
+</script>
+*/
