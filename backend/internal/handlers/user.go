@@ -8,6 +8,8 @@ import (
 	"liliengarten/filesharing/internal/validator"
 )
 
+
+
 type UserHandler struct {
 	service *service.UserService
 }
@@ -28,9 +30,16 @@ type RegisterResponse struct {
 	User UserResponse `json:"user"`
 }
 
+type ErrorResponse struct {
+	Message string `json:"message"`
+	Error string `json:"error"`
+}
+
 
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	
@@ -43,15 +52,28 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	//Ошибка валидации
 	if validationErr != nil {
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 
 		json.NewEncoder(w).Encode(validationErr)
 		return
 	}
+
+	err = h.service.Register(r.Context(), user)
 	
+	//Ошибка сервиса
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		
+		resp := ErrorResponse{
+			Message: "Error",
+			Error: err.Error(),
+		}
+
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+
 	//Успех
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	
 	resp := RegisterResponse{
