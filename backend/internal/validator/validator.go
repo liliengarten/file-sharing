@@ -40,5 +40,5 @@ func Validate[T any](object T) *ErrorResponse {
 		}
 	}
 
-	return &ErrorResponse{}
+	return nil
 }

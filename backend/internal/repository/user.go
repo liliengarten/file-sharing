@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"errors"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"liliengarten/filesharing/internal/models"
 )
@@ -27,4 +29,18 @@ func (r *UserRepository) Create(ctx context.Context, user models.User) error {
 	}
 
 	return nil
+}
+
+func (r *UserRepository) Login(ctx context.Context, email string) (models.User, error) {
+	var user models.User
+
+	err := r.pool.QueryRow(ctx, "SELECT id, email, password FROM users WHERE email = $1", email).Scan(&user.ID, &user.Email, &user.Password)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return models.User{}, err
+		}
+	}
+
+	return user, nil
 }

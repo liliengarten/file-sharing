@@ -30,6 +30,16 @@ type RegisterResponse struct {
 	User UserResponse `json:"user"`
 }
 
+type LoginResponse struct {
+	Message string `json:"message"`
+	Token string `json:"token"`
+}
+
+
+type Response struct {
+	Message string `json:"message"`
+}
+
 type ErrorResponse struct {
 	Message string `json:"message"`
 	Error string `json:"error"`
@@ -84,5 +94,39 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var user models.UserLogin
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	token, err := h.service.Login(r.Context(), user)
+
+	if err != nil {
+		resp := Response{
+			Message: "Authentification failed",
+		}
+		
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(resp)
+		
+		return
+	}
+
+	resp := LoginResponse{
+		Message: "Authentification succeed",
+		Token: token,
+	}
+
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
 }
