@@ -1,14 +1,12 @@
 package handlers
 
 import (
-	"net/http"
 	"encoding/json"
-	"liliengarten/filesharing/internal/service"
 	"liliengarten/filesharing/internal/models"
+	"liliengarten/filesharing/internal/service"
 	"liliengarten/filesharing/internal/validator"
+	"net/http"
 )
-
-
 
 type UserHandler struct {
 	service *service.UserService
@@ -18,41 +16,12 @@ func NewUserHandler(service *service.UserService) *UserHandler {
 	return &UserHandler{service}
 }
 
-
-
-type UserResponse struct {
-	Username string `json:"username"`
-	Email string `json:"email"`
-}
-
-type RegisterResponse struct {
-	Message string `json:"message"`
-	User UserResponse `json:"user"`
-}
-
-type LoginResponse struct {
-	Message string `json:"message"`
-	Token string `json:"token"`
-}
-
-
-type Response struct {
-	Message string `json:"message"`
-}
-
-type ErrorResponse struct {
-	Message string `json:"message"`
-	Error string `json:"error"`
-}
-
-
-
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
-	
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -69,14 +38,14 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = h.service.Register(r.Context(), user)
-	
+
 	//Ошибка сервиса
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		
-		resp := ErrorResponse{
+
+		resp := models.ErrorResponse{
 			Message: "Error",
-			Error: err.Error(),
+			Error:   err.Error(),
 		}
 
 		json.NewEncoder(w).Encode(resp)
@@ -85,12 +54,12 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	//Успех
 	w.WriteHeader(http.StatusCreated)
-	
-	resp := RegisterResponse{
+
+	resp := models.RegisterResponse{
 		Message: "Success",
-		User: UserResponse {
+		User: models.UserResponse{
 			Username: user.Username,
-			Email: user.Email,
+			Email:    user.Email,
 		},
 	}
 
@@ -112,19 +81,19 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	token, err := h.service.Login(r.Context(), user)
 
 	if err != nil {
-		resp := Response{
+		resp := models.Response{
 			Message: "Authentification failed",
 		}
-		
+
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(resp)
-		
+
 		return
 	}
 
-	resp := LoginResponse{
+	resp := models.LoginResponse{
 		Message: "Authentification succeed",
-		Token: token,
+		Token:   token,
 	}
 
 	w.WriteHeader(http.StatusOK)
