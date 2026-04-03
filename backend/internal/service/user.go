@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -22,7 +23,7 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 
 func generateToken(userID int) (string, error) {
 	claims := jwt.MapClaims{
-		"sub": userID,
+		"sub": fmt.Sprint(userID),
 		"exp": time.Now().Add(24 * time.Hour).Unix(),
 	}
 

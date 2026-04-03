@@ -32,8 +32,8 @@ func (r *PinRepository) Index(ctx context.Context) ([]models.Pin, error) {
 	return pins, nil
 }
 
-func (r *PinRepository) SavePin(ctx context.Context, pin *models.Pin) error {
-	_, err := r.pool.Exec(ctx, "INSERT INTO pins (image, description) VALUES ($1, $2)", pin.Image, pin.Description)
+func (r *PinRepository) SavePin(ctx context.Context, pin *models.Pin, userID string) error {
+	_, err := r.pool.Exec(ctx, "INSERT INTO pins (owner_id, image, description) VALUES ($1, $2, $3)", userID, pin.Image, pin.Description)
 	if err != nil {
 		return err
 	}
@@ -54,8 +54,40 @@ func (r *PinRepository) GetById(ctx context.Context, id int) (*models.Pin, error
 	return pin, nil
 }
 
-func (r *PinRepository) Remove(ctx context.Context, id string) error {
-	commandTag, err := r.pool.Exec(ctx, "DELETE FROM pins WHERE id = $1", id)
+func (r *PinRepository) Update(ctx context.Context, pinID string, userID string, pin *models.Pin) error {
+	query := ""
+	parameters := []any{pinID, userID}
+
+	switch {
+	case pin.Image != "" && pin.Description != "":
+		query = "UPDATE pins SET description = $3, image = $4 WHERE id = $1 and owner_id = $2"
+		parameters = append(parameters, pin.Description, pin.Image)
+
+	case pin.Image == "":
+		query = "UPDATE pins SET description = $3 WHERE id = $1 and owner_id = $2"
+		parameters = append(parameters, pin.Description)
+
+	case pin.Description == "":
+		query = "UPDATE pins SET image = $3 WHERE id = $1 and owner_id = $2"
+		parameters = append(parameters, pin.Image)
+	}
+
+	commandTag, err := r.pool.Exec(ctx, query, parameters...)
+
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		err = errors.New("Pin not found")
+		return err
+	}
+
+	return nil
+}
+
+func (r *PinRepository) Remove(ctx context.Context, pinID string, userID string) error {
+	commandTag, err := r.pool.Exec(ctx, "DELETE FROM pins WHERE id = $1 and owner_id = $2", pinID, userID)
 
 	if err != nil {
 		return err

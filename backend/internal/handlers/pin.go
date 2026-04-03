@@ -74,7 +74,7 @@ func (h *PinHandler) Add(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	err = h.service.SavePin(r.Context(), &pin, file, header)
+	err = h.service.SavePin(r.Context(), &pin, r.Context().Value("user").(string), file, header)
 	if err != nil {
 		resp := models.ErrorResponse{
 			Message: "Error",
@@ -96,18 +96,51 @@ func (h *PinHandler) Add(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PinHandler) Update(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Body == nil {
+		resp := models.ErrorResponse{
+			Message: "Error",
+			Error:   "Description or image required",
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+
+	var pin models.Pin
+	err := json.NewDecoder(r.Body).Decode(&pin)
+
+	err = h.service.Update(r.Context(), r.PathValue("id"), r.Context().Value("user").(string), &pin)
+
+	if err != nil {
+		resp := models.ErrorResponse{
+			Message: "Error",
+			Error:   err.Error(),
+		}
+
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	resp := models.Response{
+		Message: "Pin updated",
+	}
+	json.NewEncoder(w).Encode(resp)
 
 }
 
 func (h *PinHandler) Remove(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	err := h.service.Remove(r.Context(), r.PathValue("id"))
+	err := h.service.Remove(r.Context(), r.PathValue("id"), r.Context().Value("user").(string))
 
 	if err != nil {
 		resp := models.ErrorResponse{
 			Message: "Error",
-			Error:   "Pin not found",
+			Error:   err.Error(),
 		}
 
 		w.WriteHeader(http.StatusBadRequest)

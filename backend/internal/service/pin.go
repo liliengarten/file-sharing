@@ -29,7 +29,7 @@ func (s *PinService) Index(ctx context.Context) ([]models.Pin, error) {
 	return pins, nil
 }
 
-func (s *PinService) SavePin(ctx context.Context, pin *models.Pin, file multipart.File, header *multipart.FileHeader) error {
+func (s *PinService) SavePin(ctx context.Context, pin *models.Pin, userID string, file multipart.File, header *multipart.FileHeader) error {
 	filename := uuid.New().String() + filepath.Ext(header.Filename)
 
 	pin.Image = "uploads/" + filename
@@ -45,13 +45,24 @@ func (s *PinService) SavePin(ctx context.Context, pin *models.Pin, file multipar
 		return err
 	}
 
-	err = s.repo.SavePin(ctx, pin)
+	err = s.repo.SavePin(ctx, pin, userID)
 
 	return nil
 }
 
-func (s *PinService) Remove(ctx context.Context, id string) error {
-	err := s.repo.Remove(ctx, id)
+func (s *PinService) Update(ctx context.Context, pinID string, userID string, pin *models.Pin) error {
+	err := s.repo.Update(ctx, pinID, userID, pin)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *PinService) Remove(ctx context.Context, pinID string, userID string) error {
+	err := s.repo.Remove(ctx, pinID, userID)
+
 	if err != nil {
 		return err
 	}
