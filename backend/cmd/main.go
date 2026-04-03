@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"liliengarten/filesharing/internal/middlewares"
 	"log"
 	"net/http"
 
@@ -15,24 +16,14 @@ import (
 	"liliengarten/filesharing/internal/service"
 )
 
-func setupRoutes(userHandler *handlers.UserHandler, pinHandler *handlers.PinHandler) {
-	http.HandleFunc("/register", userHandler.Register)
-	http.HandleFunc("/login", userHandler.Login)
+func setupRoutes(mux *http.ServeMux, userHandler *handlers.UserHandler, pinHandler *handlers.PinHandler) {
+	mux.HandleFunc("POST /register", userHandler.Register)
+	mux.HandleFunc("POST /login", userHandler.Login)
 
-	http.HandleFunc("/pins", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			pinHandler.Index(w, r)
-		case http.MethodPost:
-			pinHandler.Add(w, r)
-		case http.MethodPatch:
-			pinHandler.Update(w, r)
-		case http.MethodDelete:
-			pinHandler.Remove(w, r)
-		}
-	})
-
-	http.H
+	mux.HandleFunc("GET /pins", middlewares.AuthMiddleware(pinHandler.Index))
+	mux.HandleFunc("POST /pins", middlewares.AuthMiddleware(pinHandler.Add))
+	mux.HandleFunc("PATCH /pins/{id}", middlewares.AuthMiddleware(pinHandler.Update))
+	mux.HandleFunc("DELETE /pins/{id}", middlewares.AuthMiddleware(pinHandler.Remove))
 }
 
 func main() {
@@ -66,7 +57,8 @@ func main() {
 	pinService := service.NewPinService(pinRepo)
 	pinHandler := handlers.NewPinHandler(pinService)
 
+	mux := http.NewServeMux()
 	//Запуск роутов и сервера
-	setupRoutes(userHandler, pinHandler)
-	http.ListenAndServe(":8080", nil)
+	setupRoutes(mux, userHandler, pinHandler)
+	http.ListenAndServe(":8080", mux)
 }

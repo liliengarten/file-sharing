@@ -2,14 +2,15 @@ package service
 
 import (
 	"context"
+	"os"
 	"time"
-	"liliengarten/filesharing/internal/repository"
+
 	"liliengarten/filesharing/internal/models"
-	"golang.org/x/crypto/bcrypt"
+	"liliengarten/filesharing/internal/repository"
+
 	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 )
-
-
 
 type UserService struct {
 	repo *repository.UserRepository
@@ -19,17 +20,15 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 	return &UserService{repo}
 }
 
-
-
 func generateToken(userID int) (string, error) {
 	claims := jwt.MapClaims{
-		"user_id": userID,
+		"sub": userID,
 		"exp": time.Now().Add(24 * time.Hour).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	return token.SignedString([]byte("12345")) //ключ в енв
+	return token.SignedString([]byte(os.Getenv("TOKEN_KEY")))
 }
 
 func (s *UserService) Register(ctx context.Context, user models.User) error {
@@ -50,12 +49,12 @@ func (s *UserService) Login(ctx context.Context, user models.UserLogin) (string,
 	if err != nil {
 		return "", err
 	}
-	
+
 	err = bcrypt.CompareHashAndPassword([]byte(repo_user.Password), []byte(user.Password))
 	if err != nil {
 		return "", err
 	}
-	
+
 	token, err := generateToken(repo_user.ID)
 	if err != nil {
 		return "", err

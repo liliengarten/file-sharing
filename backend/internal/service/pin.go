@@ -49,3 +49,12 @@ func (s *PinService) SavePin(ctx context.Context, pin *models.Pin, file multipar
 
 	return nil
 }
+
+func (s *PinService) Remove(ctx context.Context, id string) error {
+	err := s.repo.Remove(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

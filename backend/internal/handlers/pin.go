@@ -100,5 +100,24 @@ func (h *PinHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PinHandler) Remove(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 
+	err := h.service.Remove(r.Context(), r.PathValue("id"))
+
+	if err != nil {
+		resp := models.ErrorResponse{
+			Message: "Error",
+			Error:   "Pin not found",
+		}
+
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(resp)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	resp := models.Response{
+		Message: "Pin removed",
+	}
+	json.NewEncoder(w).Encode(resp)
 }
