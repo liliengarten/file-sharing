@@ -98,18 +98,18 @@ func (h *PinHandler) Add(w http.ResponseWriter, r *http.Request) {
 func (h *PinHandler) Update(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	if r.Body == nil {
+	var pin models.Pin
+	err := json.NewDecoder(r.Body).Decode(&pin)
+
+	if err != nil {
 		resp := models.ErrorResponse{
 			Message: "Error",
-			Error:   "Description or image required",
+			Error:   err.Error(),
 		}
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
-
-	var pin models.Pin
-	err := json.NewDecoder(r.Body).Decode(&pin)
 
 	err = h.service.Update(r.Context(), r.PathValue("id"), r.Context().Value("user").(string), &pin)
 

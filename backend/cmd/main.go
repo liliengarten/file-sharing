@@ -24,10 +24,24 @@ func setupRoutes(mux *http.ServeMux, userHandler *handlers.UserHandler, pinHandl
 	mux.HandleFunc("POST /pins", middlewares.AuthMiddleware(pinHandler.Add))
 	mux.HandleFunc("PATCH /pins/{id}", middlewares.AuthMiddleware(pinHandler.Update))
 	mux.HandleFunc("DELETE /pins/{id}", middlewares.AuthMiddleware(pinHandler.Remove))
+
+	/*TODO:
+	лайк
+	подписка на пользователя
+
+	создание доски
+	добавление пина на доску
+	удаление пина с доски
+
+	добавление пользователя на доску
+	удаление пользователя с доски
+
+
+	функционал сохраненных пинов не нужен, лайков достаточно
+	*/
 }
 
 func main() {
-	//Миграции
 	db, err := sql.Open("pgx", "postgres://postgres:sharikvadrati@localhost:5432/file-sharing")
 	if err != nil {
 		log.Fatal(err)
@@ -40,7 +54,6 @@ func main() {
 	}
 	db.Close()
 
-	//Подклбчение к БД
 	ctx := context.Background()
 	pool, err := pgxpool.New(ctx, "postgres://postgres:sharikvadrati@localhost:5432/file-sharing")
 	if err != nil {
@@ -48,7 +61,6 @@ func main() {
 	}
 	defer pool.Close()
 
-	//Инициализация репозиториев, сервисов и хендлеров
 	userRepo := repository.NewUserRepository(pool)
 	userService := service.NewUserService(userRepo)
 	userHandler := handlers.NewUserHandler(userService)
@@ -58,7 +70,6 @@ func main() {
 	pinHandler := handlers.NewPinHandler(pinService)
 
 	mux := http.NewServeMux()
-	//Запуск роутов и сервера
 	setupRoutes(mux, userHandler, pinHandler)
 	http.ListenAndServe(":8080", mux)
 }
