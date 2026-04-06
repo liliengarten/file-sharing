@@ -54,25 +54,8 @@ func (r *PinRepository) GetById(ctx context.Context, id int) (*models.Pin, error
 	return pin, nil
 }
 
-func (r *PinRepository) Update(ctx context.Context, pinID string, userID string, pin *models.Pin) error {
-	query := ""
-	parameters := []any{pinID, userID}
-
-	switch {
-	case pin.Image != "" && pin.Description != "":
-		query = "UPDATE pins SET description = $3, image = $4 WHERE id = $1 and owner_id = $2"
-		parameters = append(parameters, pin.Description, pin.Image)
-
-	case pin.Image == "":
-		query = "UPDATE pins SET description = $3 WHERE id = $1 and owner_id = $2"
-		parameters = append(parameters, pin.Description)
-
-	case pin.Description == "":
-		query = "UPDATE pins SET image = $3 WHERE id = $1 and owner_id = $2"
-		parameters = append(parameters, pin.Image)
-	}
-
-	commandTag, err := r.pool.Exec(ctx, query, parameters...)
+func (r *PinRepository) Update(ctx context.Context, pin *models.Pin) error {
+	commandTag, err := r.pool.Exec(ctx, "UPDATE pins SET description = $1 WHERE id = $2 and owner_id = $3", pin.Description, pin.ID, ctx.Value("user"))
 
 	if err != nil {
 		return err

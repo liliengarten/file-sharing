@@ -50,8 +50,8 @@ func (s *PinService) SavePin(ctx context.Context, pin *models.Pin, userID string
 	return nil
 }
 
-func (s *PinService) Update(ctx context.Context, pinID string, userID string, pin *models.Pin) error {
-	err := s.repo.Update(ctx, pinID, userID, pin)
+func (s *PinService) Update(ctx context.Context, pin *models.Pin) error {
+	err := s.repo.Update(ctx, pin)
 
 	if err != nil {
 		return err

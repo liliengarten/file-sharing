@@ -2,17 +2,18 @@ package validator
 
 import (
 	"errors"
+
 	"github.com/go-playground/validator/v10"
 )
 
 type ValidationError struct {
-	Field string `json:"field"`
+	Field   string `json:"field"`
 	Message string `json:"message"`
 }
 
 type ErrorResponse struct {
-	Message string `json:"message"`
-	Errors []ValidationError `json:"errors"`
+	Message string            `json:"message"`
+	Errors  []ValidationError `json:"errors"`
 }
 
 func Validate[T any](object T) *ErrorResponse {
@@ -25,15 +26,15 @@ func Validate[T any](object T) *ErrorResponse {
 			var formattedErrors []ValidationError
 
 			for _, e := range errs {
-				formattedErrors = append(formattedErrors, ValidationError {
-					Field: e.Field(),
+				formattedErrors = append(formattedErrors, ValidationError{
+					Field:   e.Field(),
 					Message: e.Tag(),
 				})
 			}
 
 			resp := ErrorResponse{
 				Message: "Validation error",
-				Errors: formattedErrors,
+				Errors:  formattedErrors,
 			}
 
 			return &resp

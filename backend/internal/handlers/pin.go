@@ -2,9 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
-	"liliengarten/filesharing/internal/models"
-	"liliengarten/filesharing/internal/service"
 	"net/http"
+	"strconv"
+
+	"liliengarten/filesharing/internal/models"
+	"liliengarten/filesharing/internal/responder"
+	"liliengarten/filesharing/internal/service"
+	"liliengarten/filesharing/internal/validator"
 )
 
 type PinHandler struct {
@@ -16,141 +20,81 @@ func NewPinHandler(s *service.PinService) *PinHandler {
 }
 
 func (h *PinHandler) Index(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	pins, err := h.service.Index(r.Context())
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-
-		resp := models.ErrorResponse{
-			Message: "Error",
-			Error:   err.Error(),
-		}
-
-		json.NewEncoder(w).Encode(resp)
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 	}
 
-	w.WriteHeader(http.StatusOK)
-	resp := models.DataResponse[models.Pin]{
-		Message: "Success",
-		Data:    pins,
-	}
-
-	json.NewEncoder(w).Encode(resp)
+	responder.DataResponse(w, "Success", pins, http.StatusOK)
 }
 
 func (h *PinHandler) Add(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+	var pin models.Pin
+	pin.Description = r.PostFormValue("description")
 
-	pin := models.Pin{
-		Description: r.FormValue("description"),
-	}
-
-	err := r.ParseMultipartForm(10 << 20)
-
-	if err != nil {
-		resp := models.ErrorResponse{
-			Message: "Error",
-			Error:   "File is too big",
-		}
-
+	validationErr := validator.Validate(pin)
+	if validationErr != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(resp)
-
+		json.NewEncoder(w).Encode(validationErr)
 		return
 	}
 
-	file, header, err := r.FormFile("file")
+	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
-		resp := models.ErrorResponse{
-			Message: "Error",
-			Error:   err.Error(),
-		}
+		responder.ErrorResponse(w, "File is too big", http.StatusBadRequest)
+		return
+	}
 
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(resp)
-
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
 	err = h.service.SavePin(r.Context(), &pin, r.Context().Value("user").(string), file, header)
 	if err != nil {
-		resp := models.ErrorResponse{
-			Message: "Error",
-			Error:   err.Error(),
-		}
-
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(resp)
-
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	resp := models.Response{
-		Message: "Pin created",
-	}
-
-	json.NewEncoder(w).Encode(resp)
+	responder.Response(w, "Pin created", http.StatusCreated)
 }
 
 func (h *PinHandler) Update(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	var pin models.Pin
-	err := json.NewDecoder(r.Body).Decode(&pin)
+	pin.Description = r.PostFormValue("description")
+
+	pinID, err := strconv.Atoi(r.PathValue("id"))
+	pin.ID = pinID
 
 	if err != nil {
-		resp := models.ErrorResponse{
-			Message: "Error",
-			Error:   err.Error(),
-		}
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(resp)
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = h.service.Update(r.Context(), r.PathValue("id"), r.Context().Value("user").(string), &pin)
-
-	if err != nil {
-		resp := models.ErrorResponse{
-			Message: "Error",
-			Error:   err.Error(),
-		}
-
+	validationErr := validator.Validate(pin)
+	if validationErr != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(resp)
+		json.NewEncoder(w).Encode(validationErr)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	resp := models.Response{
-		Message: "Pin updated",
+	err = h.service.Update(r.Context(), &pin)
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-	json.NewEncoder(w).Encode(resp)
 
+	responder.Response(w, "Pin updated", http.StatusOK)
 }
 
 func (h *PinHandler) Remove(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	err := h.service.Remove(r.Context(), r.PathValue("id"), r.Context().Value("user").(string))
-
 	if err != nil {
-		resp := models.ErrorResponse{
-			Message: "Error",
-			Error:   err.Error(),
-		}
-
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(resp)
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	resp := models.Response{
-		Message: "Pin removed",
-	}
-	json.NewEncoder(w).Encode(resp)
+	responder.Response(w, "Pin removed", http.StatusOK)
 }
