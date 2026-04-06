@@ -16,7 +16,7 @@ import (
 	"liliengarten/filesharing/internal/service"
 )
 
-func setupRoutes(mux *http.ServeMux, userHandler *handlers.UserHandler, pinHandler *handlers.PinHandler) {
+func setupRoutes(mux *http.ServeMux, userHandler *handlers.UserHandler, pinHandler *handlers.PinHandler, boardHandler *handlers.BoardHandler) {
 	mux.HandleFunc("POST /register", userHandler.Register)
 	mux.HandleFunc("POST /login", userHandler.Login)
 
@@ -25,19 +25,17 @@ func setupRoutes(mux *http.ServeMux, userHandler *handlers.UserHandler, pinHandl
 	mux.HandleFunc("PATCH /pins/{id}", middlewares.AuthMiddleware(pinHandler.Update))
 	mux.HandleFunc("DELETE /pins/{id}", middlewares.AuthMiddleware(pinHandler.Remove))
 
+	mux.HandleFunc("GET /boards", middlewares.AuthMiddleware(boardHandler.Index))
+	mux.HandleFunc("POST /boards", middlewares.AuthMiddleware(boardHandler.Create))
+	mux.HandleFunc("DELETE /boards/{id}", middlewares.AuthMiddleware(boardHandler.Remove))
+	mux.HandleFunc("POST /boards/pins/{id}", middlewares.AuthMiddleware(boardHandler.AddPin))
+	mux.HandleFunc("DELETE /boards/pins/{id}", middlewares.AuthMiddleware(boardHandler.RemovePin))
+
 	/*TODO:
 	лайк
 	подписка на пользователя
-
-	создание доски
-	добавление пина на доску
-	удаление пина с доски
-
 	добавление пользователя на доску
 	удаление пользователя с доски
-
-
-	функционал сохраненных пинов не нужен, лайков достаточно
 	*/
 }
 
@@ -69,7 +67,11 @@ func main() {
 	pinService := service.NewPinService(pinRepo)
 	pinHandler := handlers.NewPinHandler(pinService)
 
+	boardRepo := repository.NewBoardRepository(pool)
+	boardService := service.NewBoardService(boardRepo)
+	boardHandler := handlers.NewBoardHandler(boardService)
+
 	mux := http.NewServeMux()
-	setupRoutes(mux, userHandler, pinHandler)
+	setupRoutes(mux, userHandler, pinHandler, boardHandler)
 	http.ListenAndServe(":8080", mux)
 }
