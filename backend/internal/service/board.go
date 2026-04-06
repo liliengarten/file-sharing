@@ -22,3 +22,12 @@ func (s *BoardService) Index(ctx context.Context) ([]models.Board, error) {
 
 	return boards, nil
 }
+
+func (s *BoardService) Create(ctx context.Context, board *models.Board) error {
+	err := s.repo.Create(ctx, board)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

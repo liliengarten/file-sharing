@@ -28,7 +28,11 @@ func (h *BoardHandler) Index(w http.ResponseWriter, r *http.Request) {
 
 func (h *BoardHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var board models.Board
-	json.NewDecoder(r.Body).Decode(&board)
+	err := json.NewDecoder(r.Body).Decode(&board)
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	validationErr := validator.Validate(board)
 	if validationErr != nil {
@@ -37,7 +41,7 @@ func (h *BoardHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.Create(r.Context(), &board)
+	err = h.service.Create(r.Context(), &board)
 	if err != nil {
 		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return

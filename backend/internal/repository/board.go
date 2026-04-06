@@ -23,8 +23,11 @@ func (r *BoardRepository) Index(ctx context.Context) ([]models.Board, error) {
 	}
 
 	boardIds, err := pgx.CollectRows(rows, pgx.RowTo[int])
+	if err != nil {
+		return nil, err
+	}
 
-	rows, err = r.pool.Query(ctx, "SELECT * FROM boards WHERE id IN $1", boardIds)
+	rows, err = r.pool.Query(ctx, "SELECT * FROM boards WHERE id = ANY($1)", boardIds)
 	if err != nil {
 		return nil, err
 	}
@@ -35,4 +38,25 @@ func (r *BoardRepository) Index(ctx context.Context) ([]models.Board, error) {
 	}
 
 	return boards, nil
+}
+
+func (r *BoardRepository) Create(ctx context.Context, board *models.Board) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = tx.QueryRow(ctx, "INSERT INTO boards (name, description, private) VALUES ($1, $2, $3) RETURNING id", board.Name, board.Description, board.Private).Scan(&board.ID)
+	if err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	_, err = tx.Exec(ctx, "INSERT INTO user_boards (user_id, board_id, role) VALUES ($1, $2, $3)", ctx.Value("user"), board.ID, 1)
+	if err != nil {
+		tx.Rollback(ctx)
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
