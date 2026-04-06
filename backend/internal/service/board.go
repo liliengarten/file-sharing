@@ -31,3 +31,39 @@ func (s *BoardService) Create(ctx context.Context, board *models.Board) error {
 
 	return nil
 }
+
+func (s *BoardService) Remove(ctx context.Context, id string) error {
+	err := s.repo.Remove(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *BoardService) GetPins(ctx context.Context, boardID string) ([]models.Pin, error) {
+	pins, err := s.repo.GetPins(ctx, boardID)
+	if err != nil {
+		return nil, err
+	}
+
+	return pins, nil
+}
+
+func (s *BoardService) AddPin(ctx context.Context, boardID string, pinID string) error {
+	err := s.repo.AddPin(ctx, boardID, pinID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *BoardService) RemovePin(ctx context.Context, boardID string, pinID string) error {
+	err := s.repo.RemovePin(ctx, boardID, pinID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

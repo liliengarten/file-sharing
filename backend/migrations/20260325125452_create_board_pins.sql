@@ -1,9 +1,8 @@
 -- +goose Up
 	CREATE TABLE board_pins (
-		user_id   INT NOT NULL REFERENCES users(id)  ON DELETE CASCADE,
-		pin_id    INT NOT NULL REFERENCES pins(id)   ON DELETE CASCADE,
-		board_id  INT REFERENCES boards(id) ON DELETE SET NULL,
+		pin_id    INT REFERENCES pins(id)   ON DELETE CASCADE,
+		board_id  INT REFERENCES boards(id) ON DELETE CASCADE,
 		added_at  TIMESTAMP NOT NULL DEFAULT NOW(),
-		PRIMARY KEY (user_id, pin_id)
+		PRIMARY KEY (pin_id, board_id)
 	);
 -- +goose Down

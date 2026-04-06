@@ -28,8 +28,10 @@ func setupRoutes(mux *http.ServeMux, userHandler *handlers.UserHandler, pinHandl
 	mux.HandleFunc("GET /boards", middlewares.AuthMiddleware(boardHandler.Index))
 	mux.HandleFunc("POST /boards", middlewares.AuthMiddleware(boardHandler.Create))
 	mux.HandleFunc("DELETE /boards/{id}", middlewares.AuthMiddleware(boardHandler.Remove))
-	mux.HandleFunc("POST /boards/pins/{id}", middlewares.AuthMiddleware(boardHandler.AddPin))
-	mux.HandleFunc("DELETE /boards/pins/{id}", middlewares.AuthMiddleware(boardHandler.RemovePin))
+
+	mux.HandleFunc("GET /boards/{id}/pins", middlewares.AuthMiddleware(boardHandler.GetPins))
+	mux.HandleFunc("POST /boards/{board_id}/pins/{pin_id}", middlewares.AuthMiddleware(boardHandler.AddPin))
+	mux.HandleFunc("DELETE /boards/{board_id}/pins/{pin_id}", middlewares.AuthMiddleware(boardHandler.RemovePin))
 
 	/*TODO:
 	лайк

@@ -50,8 +50,42 @@ func (h *BoardHandler) Create(w http.ResponseWriter, r *http.Request) {
 	responder.Response(w, "Board created successfully", http.StatusCreated)
 }
 
-func (h *BoardHandler) Remove(w http.ResponseWriter, r *http.Request) {}
+func (h *BoardHandler) Remove(w http.ResponseWriter, r *http.Request) {
+	err := h.service.Remove(r.Context(), r.PathValue("id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-func (h *BoardHandler) AddPin(w http.ResponseWriter, r *http.Request) {}
+	responder.Response(w, "Board removed successfully", http.StatusOK)
+}
 
-func (h *BoardHandler) RemovePin(w http.ResponseWriter, r *http.Request) {}
+func (h *BoardHandler) GetPins(w http.ResponseWriter, r *http.Request) {
+	pins, err := h.service.GetPins(r.Context(), r.PathValue("id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	responder.DataResponse(w, "Success", pins, http.StatusOK)
+}
+
+func (h *BoardHandler) AddPin(w http.ResponseWriter, r *http.Request) {
+	err := h.service.AddPin(r.Context(), r.PathValue("board_id"), r.PathValue("pin_id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	responder.Response(w, "Pin added successfully", http.StatusCreated)
+}
+
+func (h *BoardHandler) RemovePin(w http.ResponseWriter, r *http.Request) {
+	err := h.service.RemovePin(r.Context(), r.PathValue("board_id"), r.PathValue("pin_id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	responder.Response(w, "Pin removed successfully", http.StatusCreated)
+}
