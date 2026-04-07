@@ -2,20 +2,25 @@ package service
 
 import (
 	"context"
+	"errors"
 	"liliengarten/filesharing/internal/models"
 	"liliengarten/filesharing/internal/repository"
 )
 
 type BoardService struct {
-	repo *repository.BoardRepository
+	boardRepo *repository.BoardRepository
+	userRepo  *repository.UserRepository
 }
 
-func NewBoardService(r *repository.BoardRepository) *BoardService {
-	return &BoardService{repo: r}
+func NewBoardService(br *repository.BoardRepository, ur *repository.UserRepository) *BoardService {
+	return &BoardService{
+		boardRepo: br,
+		userRepo:  ur,
+	}
 }
 
 func (s *BoardService) Index(ctx context.Context) ([]models.Board, error) {
-	boards, err := s.repo.Index(ctx)
+	boards, err := s.boardRepo.Index(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +29,7 @@ func (s *BoardService) Index(ctx context.Context) ([]models.Board, error) {
 }
 
 func (s *BoardService) Create(ctx context.Context, board *models.Board) error {
-	err := s.repo.Create(ctx, board)
+	err := s.boardRepo.Create(ctx, board)
 	if err != nil {
 		return err
 	}
@@ -33,7 +38,7 @@ func (s *BoardService) Create(ctx context.Context, board *models.Board) error {
 }
 
 func (s *BoardService) Remove(ctx context.Context, id string) error {
-	err := s.repo.Remove(ctx, id)
+	err := s.boardRepo.Remove(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -42,7 +47,7 @@ func (s *BoardService) Remove(ctx context.Context, id string) error {
 }
 
 func (s *BoardService) GetPins(ctx context.Context, boardID string) ([]models.Pin, error) {
-	pins, err := s.repo.GetPins(ctx, boardID)
+	pins, err := s.boardRepo.GetPins(ctx, boardID)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +56,7 @@ func (s *BoardService) GetPins(ctx context.Context, boardID string) ([]models.Pi
 }
 
 func (s *BoardService) AddPin(ctx context.Context, boardID string, pinID string) error {
-	err := s.repo.AddPin(ctx, boardID, pinID)
+	err := s.boardRepo.AddPin(ctx, boardID, pinID)
 	if err != nil {
 		return err
 	}
@@ -60,7 +65,48 @@ func (s *BoardService) AddPin(ctx context.Context, boardID string, pinID string)
 }
 
 func (s *BoardService) RemovePin(ctx context.Context, boardID string, pinID string) error {
-	err := s.repo.RemovePin(ctx, boardID, pinID)
+	err := s.boardRepo.RemovePin(ctx, boardID, pinID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *BoardService) GetAuthors(ctx context.Context, boardID string) ([]models.BoardAuthor, error) {
+	authors, err := s.boardRepo.GetAuthors(ctx, boardID)
+	if err != nil {
+		return nil, err
+	}
+
+	return authors, nil
+}
+
+func (s *BoardService) AddAuthor(ctx context.Context, boardID string, userID string) error {
+	if userID == ctx.Value("user") {
+		return errors.New("can't add yourself as author")
+	}
+
+	_, err := s.userRepo.GetById(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	err = s.boardRepo.AddAuthor(ctx, boardID, userID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *BoardService) RemoveAuthor(ctx context.Context, boardID string, userID string) error {
+	_, err := s.userRepo.GetById(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	err = s.boardRepo.RemoveAuthor(ctx, boardID, userID)
 	if err != nil {
 		return err
 	}

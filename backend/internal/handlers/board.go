@@ -89,3 +89,33 @@ func (h *BoardHandler) RemovePin(w http.ResponseWriter, r *http.Request) {
 
 	responder.Response(w, "Pin removed successfully", http.StatusCreated)
 }
+
+func (h *BoardHandler) GetAuthors(w http.ResponseWriter, r *http.Request) {
+	authors, err := h.service.GetAuthors(r.Context(), r.PathValue("id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	responder.DataResponse(w, "Success", authors, http.StatusOK)
+}
+
+func (h *BoardHandler) AddAuthor(w http.ResponseWriter, r *http.Request) {
+	err := h.service.AddAuthor(r.Context(), r.PathValue("board_id"), r.PathValue("user_id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	responder.Response(w, "Author added successfully", http.StatusCreated)
+}
+
+func (h *BoardHandler) RemoveAuthor(w http.ResponseWriter, r *http.Request) {
+	err := h.service.RemoveAuthor(r.Context(), r.PathValue("board_id"), r.PathValue("user_id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	responder.Response(w, "Author removed successfully", http.StatusCreated)
+}

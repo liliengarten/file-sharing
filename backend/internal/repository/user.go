@@ -3,9 +3,10 @@ package repository
 import (
 	"context"
 	"errors"
+	"liliengarten/filesharing/internal/models"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"liliengarten/filesharing/internal/models"
 )
 
 type UserRepository struct {
@@ -16,7 +17,24 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 	return &UserRepository{pool}
 }
 
+func (r *UserRepository) GetById(ctx context.Context, id string) (*models.User, error) {
+	rows, err := r.pool.Query(ctx, "SELECT * FROM users WHERE id = $1", id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 
+	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[models.User])
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, errors.New("user not found")
+		}
+
+		return nil, err
+	}
+
+	return &user, nil
+}
 
 func (r *UserRepository) Create(ctx context.Context, user models.User) error {
 	_, err := r.pool.Exec(ctx,

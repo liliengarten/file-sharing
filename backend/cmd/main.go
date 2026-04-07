@@ -33,9 +33,14 @@ func setupRoutes(mux *http.ServeMux, userHandler *handlers.UserHandler, pinHandl
 	mux.HandleFunc("POST /boards/{board_id}/pins/{pin_id}", middlewares.AuthMiddleware(boardHandler.AddPin))
 	mux.HandleFunc("DELETE /boards/{board_id}/pins/{pin_id}", middlewares.AuthMiddleware(boardHandler.RemovePin))
 
+	mux.HandleFunc("GET /boards/{id}/authors", middlewares.AuthMiddleware(boardHandler.GetAuthors))
+	mux.HandleFunc("POST /boards/{board_id}/authors/{user_id}", middlewares.AuthMiddleware(boardHandler.AddAuthor))
+	mux.HandleFunc("DELETE /boards/{board_id}/authors/{user_id}", middlewares.AuthMiddleware(boardHandler.RemoveAuthor))
+
 	/*TODO:
 	лайк
 	подписка на пользователя
+
 	добавление пользователя на доску
 	удаление пользователя с доски
 	*/
@@ -70,7 +75,7 @@ func main() {
 	pinHandler := handlers.NewPinHandler(pinService)
 
 	boardRepo := repository.NewBoardRepository(pool)
-	boardService := service.NewBoardService(boardRepo)
+	boardService := service.NewBoardService(boardRepo, userRepo)
 	boardHandler := handlers.NewBoardHandler(boardService)
 
 	mux := http.NewServeMux()

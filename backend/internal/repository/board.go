@@ -24,7 +24,7 @@ func (r *BoardRepository) HasRights(ctx context.Context, boardID string) error {
 		return err
 	}
 	if !exists {
-		return errors.New("Board not found")
+		return errors.New("board not found")
 	}
 
 	return nil
@@ -66,7 +66,7 @@ func (r *BoardRepository) Create(ctx context.Context, board *models.Board) error
 		return err
 	}
 
-	_, err = tx.Exec(ctx, "INSERT INTO user_boards (user_id, board_id, role) VALUES ($1, $2, $3)", ctx.Value("user"), board.ID, 1)
+	_, err = tx.Exec(ctx, "INSERT INTO user_boards (user_id, board_id, invited_by) VALUES ($1, $2, $3)", ctx.Value("user"), board.ID, nil)
 	if err != nil {
 		tx.Rollback(ctx)
 		return err
@@ -76,13 +76,13 @@ func (r *BoardRepository) Create(ctx context.Context, board *models.Board) error
 }
 
 func (r *BoardRepository) Remove(ctx context.Context, id string) error {
-	commandTag, err := r.pool.Exec(ctx, "DELETE FROM user_boards WHERE board_id = $1 and user_id = $2 and role = $3", id, ctx.Value("user"), 1)
+	commandTag, err := r.pool.Exec(ctx, "DELETE FROM user_boards WHERE board_id = $1 and user_id = $2", id, ctx.Value("user"), 1)
 	if err != nil {
 		return err
 	}
 
 	if commandTag.RowsAffected() == 0 {
-		return errors.New("Board not found")
+		return errors.New("board not found")
 	}
 
 	return nil
@@ -141,7 +141,84 @@ func (r *BoardRepository) RemovePin(ctx context.Context, boardID string, pinID s
 	}
 
 	if commandTag.RowsAffected() == 0 {
-		return errors.New("Pin not found")
+		return errors.New("pin not found")
+	}
+
+	return nil
+}
+
+func (r *BoardRepository) GetAuthors(ctx context.Context, boardID string) ([]models.BoardAuthor, error) {
+	err := r.HasRights(ctx, boardID)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.pool.Query(ctx, "SELECT user_id, invited_by FROM user_boards WHERE board_id = $1", boardID)
+	if err != nil {
+		return nil, err
+	}
+
+	authors, err := pgx.CollectRows(rows, pgx.RowToStructByName[models.BoardAuthor])
+	if err != nil {
+		return nil, err
+	}
+
+	return authors, nil
+}
+
+func (r *BoardRepository) AddAuthor(ctx context.Context, boardID string, userID string) error {
+	err := r.HasRights(ctx, boardID)
+	if err != nil {
+		return err
+	}
+
+	var exists bool
+	err = r.pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM user_boards WHERE user_id = $1 and board_id = $2)", userID, boardID).Scan(&exists)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return errors.New("author already added")
+	}
+
+	_, err = r.pool.Exec(ctx, "INSERT INTO user_boards (board_id, user_id, invited_by) VALUES ($1, $2, $3)", boardID, userID, ctx.Value("user"))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *BoardRepository) RemoveAuthor(ctx context.Context, boardID string, userID string) error {
+	err := r.HasRights(ctx, boardID)
+	if err != nil {
+		return err
+	}
+
+	var exists bool
+	err = r.pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM user_boards WHERE user_id = $1 and board_id = $2)", userID, boardID).Scan(&exists)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return errors.New("there is no such author")
+	}
+
+	var invitedBy string
+	err = r.pool.QueryRow(ctx, "SELECT invited_by FROM user_boards WHERE user_id = $1 and board_id = $2", ctx.Value("user"), boardID).Scan(&invitedBy)
+	if err != nil {
+		return err
+	}
+
+	if invitedBy == userID {
+		return errors.New("can't remove this author")
+	}
+
+	_, err = r.pool.Exec(ctx, "DELETE FROM user_boards WHERE user_id = $1 and board_id = $2", userID, boardID)
+	if err != nil {
+		return err
 	}
 
 	return nil
