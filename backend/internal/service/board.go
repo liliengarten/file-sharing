@@ -28,6 +28,15 @@ func (s *BoardService) Index(ctx context.Context) ([]models.Board, error) {
 	return boards, nil
 }
 
+func (s *BoardService) GetBoard(ctx context.Context, boardID string) ([]models.Board, error) {
+	board, err := s.boardRepo.GetById(ctx, boardID)
+	if err != nil {
+		return nil, err
+	}
+
+	return board, nil
+}
+
 func (s *BoardService) Create(ctx context.Context, board *models.Board) error {
 	err := s.boardRepo.Create(ctx, board)
 	if err != nil {
@@ -88,6 +97,11 @@ func (s *BoardService) AddAuthor(ctx context.Context, boardID string, userID str
 	}
 
 	_, err := s.userRepo.GetById(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.boardRepo.GetById(ctx, boardID)
 	if err != nil {
 		return err
 	}

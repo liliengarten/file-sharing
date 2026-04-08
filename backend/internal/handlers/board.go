@@ -26,6 +26,16 @@ func (h *BoardHandler) Index(w http.ResponseWriter, r *http.Request) {
 	responder.DataResponse(w, "Success", boards, http.StatusOK)
 }
 
+func (h *BoardHandler) GetBoard(w http.ResponseWriter, r *http.Request) {
+	board, err := h.service.GetBoard(r.Context(), r.PathValue("id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	responder.DataResponse(w, "Success", board, http.StatusOK)
+}
+
 func (h *BoardHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var board models.Board
 	err := json.NewDecoder(r.Body).Decode(&board)

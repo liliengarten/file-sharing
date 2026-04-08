@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"liliengarten/filesharing/internal/models"
+	"strconv"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -54,6 +55,24 @@ func (r *BoardRepository) Index(ctx context.Context) ([]models.Board, error) {
 	return boards, nil
 }
 
+func (r *BoardRepository) GetById(ctx context.Context, id string) ([]models.Board, error) {
+	rows, err := r.pool.Query(ctx, "SELECT * FROM boards WHERE id = $1", id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	board, err := pgx.CollectRows(rows, pgx.RowToStructByName[models.Board])
+	if err != nil {
+		return nil, err
+	}
+	if len(board) == 0 {
+		return nil, errors.New("board not found")
+	}
+
+	return board, nil
+}
+
 func (r *BoardRepository) Create(ctx context.Context, board *models.Board) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -66,7 +85,7 @@ func (r *BoardRepository) Create(ctx context.Context, board *models.Board) error
 		return err
 	}
 
-	_, err = tx.Exec(ctx, "INSERT INTO user_boards (user_id, board_id, invited_by) VALUES ($1, $2, $3)", ctx.Value("user"), board.ID, nil)
+	_, err = tx.Exec(ctx, "INSERT INTO user_boards (user_id, board_id, invited_by) VALUES ($1, $2, $3)", ctx.Value("user"), board.ID, ctx.Value("user"))
 	if err != nil {
 		tx.Rollback(ctx)
 		return err
@@ -206,13 +225,17 @@ func (r *BoardRepository) RemoveAuthor(ctx context.Context, boardID string, user
 		return errors.New("there is no such author")
 	}
 
-	var invitedBy string
+	var invitedBy int
 	err = r.pool.QueryRow(ctx, "SELECT invited_by FROM user_boards WHERE user_id = $1 and board_id = $2", ctx.Value("user"), boardID).Scan(&invitedBy)
 	if err != nil {
 		return err
 	}
 
-	if invitedBy == userID {
+	userIDint, err := strconv.Atoi(userID)
+	if err != nil {
+		return err
+	}
+	if invitedBy == userIDint {
 		return errors.New("can't remove this author")
 	}
 

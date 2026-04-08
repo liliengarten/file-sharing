@@ -17,14 +17,14 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 	return &UserRepository{pool}
 }
 
-func (r *UserRepository) GetById(ctx context.Context, id string) (*models.User, error) {
+func (r *UserRepository) GetById(ctx context.Context, id string) ([]models.User, error) {
 	rows, err := r.pool.Query(ctx, "SELECT * FROM users WHERE id = $1", id)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	user, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[models.User])
+	user, err := pgx.CollectRows(rows, pgx.RowToStructByName[models.User])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, errors.New("user not found")
@@ -33,7 +33,7 @@ func (r *UserRepository) GetById(ctx context.Context, id string) (*models.User, 
 		return nil, err
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 func (r *UserRepository) Create(ctx context.Context, user models.User) error {

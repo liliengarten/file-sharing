@@ -62,3 +62,13 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	responder.Response(w, token, http.StatusOK)
 }
+
+func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+	profile, err := h.service.GetProfile(r.Context(), r.PathValue("id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	responder.DataResponse(w, "Success", profile, http.StatusOK)
+}

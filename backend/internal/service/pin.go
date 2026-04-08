@@ -29,6 +29,15 @@ func (s *PinService) Index(ctx context.Context) ([]models.Pin, error) {
 	return pins, nil
 }
 
+func (s *PinService) GetPin(ctx context.Context, pinID string) ([]models.Pin, error) {
+	pin, err := s.repo.GetById(ctx, pinID)
+	if err != nil {
+		return nil, err
+	}
+
+	return pin, nil
+}
+
 func (s *PinService) SavePin(ctx context.Context, pin *models.Pin, userID string, file multipart.File, header *multipart.FileHeader) error {
 	filename := uuid.New().String() + filepath.Ext(header.Filename)
 
@@ -63,6 +72,34 @@ func (s *PinService) Update(ctx context.Context, pin *models.Pin) error {
 func (s *PinService) Remove(ctx context.Context, pinID string, userID string) error {
 	err := s.repo.Remove(ctx, pinID, userID)
 
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *PinService) LikePin(ctx context.Context, pinID string) error {
+	_, err := s.repo.GetById(ctx, pinID)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.LikePin(ctx, pinID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *PinService) UnlikePin(ctx context.Context, pinID string) error {
+	_, err := s.repo.GetById(ctx, pinID)
+	if err != nil {
+		return err
+	}
+
+	err = s.repo.UnlikePin(ctx, pinID)
 	if err != nil {
 		return err
 	}

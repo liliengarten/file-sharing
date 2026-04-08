@@ -63,3 +63,12 @@ func (s *UserService) Login(ctx context.Context, user models.UserLogin) (string,
 
 	return token, nil
 }
+
+func (s *UserService) GetProfile(ctx context.Context, userID string) ([]models.User, error) {
+	profile, err := s.repo.GetById(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return profile, nil
+}

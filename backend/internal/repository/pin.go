@@ -41,14 +41,20 @@ func (r *PinRepository) SavePin(ctx context.Context, pin *models.Pin, userID str
 	return nil
 }
 
-func (r *PinRepository) GetById(ctx context.Context, id int) (*models.Pin, error) {
-	pin := &models.Pin{}
-
-	row := r.pool.QueryRow(ctx, "SELECT * FROM pins WHERE image = $1", id)
-
-	err := row.Scan(&pin.Image, &pin.Description)
+func (r *PinRepository) GetById(ctx context.Context, id string) ([]models.Pin, error) {
+	rows, err := r.pool.Query(ctx, "SELECT * FROM pins WHERE id = $1", id)
 	if err != nil {
 		return nil, err
+	}
+	defer rows.Close()
+
+	pin, err := pgx.CollectRows(rows, pgx.RowToStructByName[models.Pin])
+	if err != nil {
+		return nil, err
+	}
+
+	if len(pin) == 0 {
+		return nil, errors.New("pin not found")
 	}
 
 	return pin, nil
@@ -62,7 +68,7 @@ func (r *PinRepository) Update(ctx context.Context, pin *models.Pin) error {
 	}
 
 	if commandTag.RowsAffected() == 0 {
-		err = errors.New("Pin not found")
+		err = errors.New("pin not found")
 		return err
 	}
 
@@ -77,8 +83,30 @@ func (r *PinRepository) Remove(ctx context.Context, pinID string, userID string)
 	}
 
 	if commandTag.RowsAffected() == 0 {
-		err = errors.New("Pin not found")
+		err = errors.New("pin not found")
 		return err
+	}
+
+	return nil
+}
+
+func (r *PinRepository) LikePin(ctx context.Context, pinID string) error {
+	_, err := r.pool.Exec(ctx, "INSERT INTO liked_pins (user_id, pin_id) VALUES ($1, $2)", pinID, ctx.Value("user"))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *PinRepository) UnlikePin(ctx context.Context, pinID string) error {
+	commandTag, err := r.pool.Exec(ctx, "DELETE FROM liked_pins WHERE user_id = $1 and pin_id = $", pinID, ctx.Value("user"))
+	if err != nil {
+		return err
+	}
+
+	if commandTag.RowsAffected() == 0 {
+		err = errors.New("record not found")
 	}
 
 	return nil

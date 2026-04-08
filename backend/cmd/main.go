@@ -20,12 +20,19 @@ func setupRoutes(mux *http.ServeMux, userHandler *handlers.UserHandler, pinHandl
 	mux.HandleFunc("POST /register", userHandler.Register)
 	mux.HandleFunc("POST /login", userHandler.Login)
 
+	mux.HandleFunc("GET /profile/{id}", userHandler.GetProfile)
+
 	mux.HandleFunc("GET /pins", middlewares.AuthMiddleware(pinHandler.Index))
+	mux.HandleFunc("GET /pins/{id}", middlewares.AuthMiddleware(pinHandler.GetPin))
 	mux.HandleFunc("POST /pins", middlewares.AuthMiddleware(pinHandler.Add))
 	mux.HandleFunc("PATCH /pins/{id}", middlewares.AuthMiddleware(pinHandler.Update))
 	mux.HandleFunc("DELETE /pins/{id}", middlewares.AuthMiddleware(pinHandler.Remove))
 
+	mux.HandleFunc("POST /pins/{id}/like", middlewares.AuthMiddleware(pinHandler.LikePin))
+	mux.HandleFunc("DELETE /pins/{id}/like", middlewares.AuthMiddleware(pinHandler.UnlikePin))
+
 	mux.HandleFunc("GET /boards", middlewares.AuthMiddleware(boardHandler.Index))
+	mux.HandleFunc("GET /boards/{id}", middlewares.AuthMiddleware(boardHandler.GetBoard))
 	mux.HandleFunc("POST /boards", middlewares.AuthMiddleware(boardHandler.Create))
 	mux.HandleFunc("DELETE /boards/{id}", middlewares.AuthMiddleware(boardHandler.Remove))
 
@@ -36,14 +43,6 @@ func setupRoutes(mux *http.ServeMux, userHandler *handlers.UserHandler, pinHandl
 	mux.HandleFunc("GET /boards/{id}/authors", middlewares.AuthMiddleware(boardHandler.GetAuthors))
 	mux.HandleFunc("POST /boards/{board_id}/authors/{user_id}", middlewares.AuthMiddleware(boardHandler.AddAuthor))
 	mux.HandleFunc("DELETE /boards/{board_id}/authors/{user_id}", middlewares.AuthMiddleware(boardHandler.RemoveAuthor))
-
-	/*TODO:
-	лайк
-	подписка на пользователя
-
-	добавление пользователя на доску
-	удаление пользователя с доски
-	*/
 }
 
 func main() {

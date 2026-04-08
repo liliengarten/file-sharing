@@ -28,6 +28,16 @@ func (h *PinHandler) Index(w http.ResponseWriter, r *http.Request) {
 	responder.DataResponse(w, "Success", pins, http.StatusOK)
 }
 
+func (h *PinHandler) GetPin(w http.ResponseWriter, r *http.Request) {
+	pin, err := h.service.GetPin(r.Context(), r.PathValue("id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	responder.DataResponse(w, "Success", pin, http.StatusOK)
+}
+
 func (h *PinHandler) Add(w http.ResponseWriter, r *http.Request) {
 	var pin models.Pin
 	pin.Description = r.PostFormValue("description")
@@ -97,4 +107,22 @@ func (h *PinHandler) Remove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responder.Response(w, "Pin removed", http.StatusOK)
+}
+
+func (h *PinHandler) LikePin(w http.ResponseWriter, r *http.Request) {
+	err := h.service.LikePin(r.Context(), r.PathValue("id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+	}
+
+	responder.Response(w, "Pin liked", http.StatusOK)
+}
+
+func (h *PinHandler) UnlikePin(w http.ResponseWriter, r *http.Request) {
+	err := h.service.UnlikePin(r.Context(), r.PathValue("id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+	}
+
+	responder.Response(w, "Pin unliked", http.StatusOK)
 }
