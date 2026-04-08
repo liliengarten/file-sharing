@@ -113,6 +113,7 @@ func (h *PinHandler) LikePin(w http.ResponseWriter, r *http.Request) {
 	err := h.service.LikePin(r.Context(), r.PathValue("id"))
 	if err != nil {
 		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	responder.Response(w, "Pin liked", http.StatusOK)
@@ -122,6 +123,7 @@ func (h *PinHandler) UnlikePin(w http.ResponseWriter, r *http.Request) {
 	err := h.service.UnlikePin(r.Context(), r.PathValue("id"))
 	if err != nil {
 		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	responder.Response(w, "Pin unliked", http.StatusOK)

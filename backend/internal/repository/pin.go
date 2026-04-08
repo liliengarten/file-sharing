@@ -62,7 +62,6 @@ func (r *PinRepository) GetById(ctx context.Context, id string) ([]models.Pin, e
 
 func (r *PinRepository) Update(ctx context.Context, pin *models.Pin) error {
 	commandTag, err := r.pool.Exec(ctx, "UPDATE pins SET description = $1 WHERE id = $2 and owner_id = $3", pin.Description, pin.ID, ctx.Value("user"))
-
 	if err != nil {
 		return err
 	}
@@ -77,7 +76,6 @@ func (r *PinRepository) Update(ctx context.Context, pin *models.Pin) error {
 
 func (r *PinRepository) Remove(ctx context.Context, pinID string, userID string) error {
 	commandTag, err := r.pool.Exec(ctx, "DELETE FROM pins WHERE id = $1 and owner_id = $2", pinID, userID)
-
 	if err != nil {
 		return err
 	}
@@ -90,8 +88,33 @@ func (r *PinRepository) Remove(ctx context.Context, pinID string, userID string)
 	return nil
 }
 
+func (r *PinRepository) GetLikes(ctx context.Context) ([]models.Pin, error) {
+	rows, err := r.pool.Query(ctx, "SELECT pin_id FROM liked_pins WHERE user_id = $1", ctx.Value("user"))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	pinIds, err := pgx.CollectRows(rows, pgx.RowTo[int])
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err = r.pool.Query(ctx, "SELECT * FROM pins WHERE id = ANY($1)", pinIds)
+	if err != nil {
+		return nil, err
+	}
+
+	pins, err := pgx.CollectRows(rows, pgx.RowToStructByName[models.Pin])
+	if err != nil {
+		return nil, err
+	}
+
+	return pins, nil
+}
+
 func (r *PinRepository) LikePin(ctx context.Context, pinID string) error {
-	_, err := r.pool.Exec(ctx, "INSERT INTO liked_pins (user_id, pin_id) VALUES ($1, $2)", pinID, ctx.Value("user"))
+	_, err := r.pool.Exec(ctx, "INSERT INTO liked_pins (user_id, pin_id) VALUES ($1, $2)", ctx.Value("user"), pinID)
 	if err != nil {
 		return err
 	}
@@ -100,13 +123,13 @@ func (r *PinRepository) LikePin(ctx context.Context, pinID string) error {
 }
 
 func (r *PinRepository) UnlikePin(ctx context.Context, pinID string) error {
-	commandTag, err := r.pool.Exec(ctx, "DELETE FROM liked_pins WHERE user_id = $1 and pin_id = $", pinID, ctx.Value("user"))
+	commandTag, err := r.pool.Exec(ctx, "DELETE FROM liked_pins WHERE user_id = $1 and pin_id = $2", ctx.Value("user"), pinID)
 	if err != nil {
 		return err
 	}
 
 	if commandTag.RowsAffected() == 0 {
-		err = errors.New("record not found")
+		return errors.New("record not found")
 	}
 
 	return nil

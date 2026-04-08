@@ -72,3 +72,13 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	responder.DataResponse(w, "Success", profile, http.StatusOK)
 }
+
+func (h *UserHandler) GetLikes(w http.ResponseWriter, r *http.Request) {
+	pins, err := h.service.GetLikes(r.Context())
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	responder.DataResponse(w, "Success", pins, http.StatusOK)
+}

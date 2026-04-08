@@ -14,11 +14,15 @@ import (
 )
 
 type UserService struct {
-	repo *repository.UserRepository
+	userRepo *repository.UserRepository
+	pinRepo  *repository.PinRepository
 }
 
-func NewUserService(repo *repository.UserRepository) *UserService {
-	return &UserService{repo}
+func NewUserService(userRepo *repository.UserRepository, pinRepo *repository.PinRepository) *UserService {
+	return &UserService{
+		userRepo: userRepo,
+		pinRepo:  pinRepo,
+	}
 }
 
 func generateToken(userID int) (string, error) {
@@ -37,7 +41,7 @@ func (s *UserService) Register(ctx context.Context, user models.User) error {
 
 	user.Password = string(hashed)
 
-	err = s.repo.Create(ctx, user)
+	err = s.userRepo.Create(ctx, user)
 	if err != nil {
 		return err
 	}
@@ -46,7 +50,7 @@ func (s *UserService) Register(ctx context.Context, user models.User) error {
 }
 
 func (s *UserService) Login(ctx context.Context, user models.UserLogin) (string, error) {
-	repo_user, err := s.repo.Login(ctx, user.Email)
+	repo_user, err := s.userRepo.Login(ctx, user.Email)
 	if err != nil {
 		return "", err
 	}
@@ -65,10 +69,19 @@ func (s *UserService) Login(ctx context.Context, user models.UserLogin) (string,
 }
 
 func (s *UserService) GetProfile(ctx context.Context, userID string) ([]models.User, error) {
-	profile, err := s.repo.GetById(ctx, userID)
+	profile, err := s.userRepo.GetById(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	return profile, nil
+}
+
+func (s *UserService) GetLikes(ctx context.Context) ([]models.Pin, error) {
+	pins, err := s.pinRepo.GetLikes(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return pins, nil
 }
