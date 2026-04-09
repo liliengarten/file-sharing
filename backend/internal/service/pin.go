@@ -20,8 +20,12 @@ func NewPinService(repo *repository.PinRepository) *PinService {
 	return &PinService{repo}
 }
 
-func (s *PinService) Index(ctx context.Context) ([]models.Pin, error) {
-	pins, err := s.repo.Index(ctx)
+func (s *PinService) Index(ctx context.Context, page string) ([]models.Pin, error) {
+	if page == "" {
+		page = "1"
+	}
+
+	pins, err := s.repo.Index(ctx, page)
 	if err != nil {
 		return nil, err
 	}

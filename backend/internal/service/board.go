@@ -19,8 +19,12 @@ func NewBoardService(br *repository.BoardRepository, ur *repository.UserReposito
 	}
 }
 
-func (s *BoardService) Index(ctx context.Context) ([]models.Board, error) {
-	boards, err := s.boardRepo.Index(ctx)
+func (s *BoardService) Index(ctx context.Context, page string) ([]models.Board, error) {
+	if page == "" {
+		page = "1"
+	}
+
+	boards, err := s.boardRepo.Index(ctx, page)
 	if err != nil {
 		return nil, err
 	}
@@ -55,8 +59,12 @@ func (s *BoardService) Remove(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *BoardService) GetPins(ctx context.Context, boardID string) ([]models.Pin, error) {
-	pins, err := s.boardRepo.GetPins(ctx, boardID)
+func (s *BoardService) GetPins(ctx context.Context, boardID string, page string) ([]models.Pin, error) {
+	if page == "" {
+		page = "1"
+	}
+
+	pins, err := s.boardRepo.GetPins(ctx, boardID, page)
 	if err != nil {
 		return nil, err
 	}
@@ -82,8 +90,12 @@ func (s *BoardService) RemovePin(ctx context.Context, boardID string, pinID stri
 	return nil
 }
 
-func (s *BoardService) GetAuthors(ctx context.Context, boardID string) ([]models.BoardAuthor, error) {
-	authors, err := s.boardRepo.GetAuthors(ctx, boardID)
+func (s *BoardService) GetAuthors(ctx context.Context, boardID string, page string) ([]models.BoardAuthor, error) {
+	if page == "" {
+		page = "1"
+	}
+
+	authors, err := s.boardRepo.GetAuthors(ctx, boardID, page)
 	if err != nil {
 		return nil, err
 	}

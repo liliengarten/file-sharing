@@ -18,7 +18,7 @@ func NewBoardHandler(s *service.BoardService) *BoardHandler {
 }
 
 func (h *BoardHandler) Index(w http.ResponseWriter, r *http.Request) {
-	boards, err := h.service.Index(r.Context())
+	boards, err := h.service.Index(r.Context(), r.URL.Query().Get("page"))
 	if err != nil {
 		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 	}
@@ -71,7 +71,7 @@ func (h *BoardHandler) Remove(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BoardHandler) GetPins(w http.ResponseWriter, r *http.Request) {
-	pins, err := h.service.GetPins(r.Context(), r.PathValue("id"))
+	pins, err := h.service.GetPins(r.Context(), r.PathValue("id"), r.URL.Query().Get("page"))
 	if err != nil {
 		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
@@ -101,7 +101,7 @@ func (h *BoardHandler) RemovePin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *BoardHandler) GetAuthors(w http.ResponseWriter, r *http.Request) {
-	authors, err := h.service.GetAuthors(r.Context(), r.PathValue("id"))
+	authors, err := h.service.GetAuthors(r.Context(), r.PathValue("id"), r.URL.Query().Get("page"))
 	if err != nil {
 		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return

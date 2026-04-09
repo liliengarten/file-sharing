@@ -20,7 +20,7 @@ func NewPinHandler(s *service.PinService) *PinHandler {
 }
 
 func (h *PinHandler) Index(w http.ResponseWriter, r *http.Request) {
-	pins, err := h.service.Index(r.Context())
+	pins, err := h.service.Index(r.Context(), r.URL.Query().Get("page"))
 	if err != nil {
 		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"liliengarten/filesharing/internal/models"
+	"strconv"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,8 +18,13 @@ func NewPinRepository(pool *pgxpool.Pool) *PinRepository {
 	return &PinRepository{pool}
 }
 
-func (r *PinRepository) Index(ctx context.Context) ([]models.Pin, error) {
-	rows, err := r.pool.Query(ctx, "SELECT * FROM pins")
+func (r *PinRepository) Index(ctx context.Context, page string) ([]models.Pin, error) {
+	intPage, err := strconv.Atoi(page)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.pool.Query(ctx, "SELECT * FROM pins ORDER BY id LIMIT $1 OFFSET $2", 10, (intPage-1)*10)
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +94,13 @@ func (r *PinRepository) Remove(ctx context.Context, pinID string, userID string)
 	return nil
 }
 
-func (r *PinRepository) GetLikes(ctx context.Context) ([]models.Pin, error) {
-	rows, err := r.pool.Query(ctx, "SELECT pin_id FROM liked_pins WHERE user_id = $1", ctx.Value("user"))
+func (r *PinRepository) GetLikes(ctx context.Context, page string) ([]models.Pin, error) {
+	intPage, err := strconv.Atoi(page)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.pool.Query(ctx, "SELECT pin_id FROM liked_pins WHERE user_id = $1 ORDER BY pin_id LIMIT $2 OFFSET $3", ctx.Value("user"), 10, (intPage-1)*10)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +125,17 @@ func (r *PinRepository) GetLikes(ctx context.Context) ([]models.Pin, error) {
 }
 
 func (r *PinRepository) LikePin(ctx context.Context, pinID string) error {
-	_, err := r.pool.Exec(ctx, "INSERT INTO liked_pins (user_id, pin_id) VALUES ($1, $2)", ctx.Value("user"), pinID)
+	var exists bool
+	err := r.pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM liked_pins WHERE user_id = $1 and pin_id = $2)", ctx.Value("user"), pinID).Scan(&exists)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return errors.New("pin already liked")
+	}
+
+	_, err = r.pool.Exec(ctx, "INSERT INTO liked_pins (user_id, pin_id) VALUES ($1, $2)", ctx.Value("user"), pinID)
 	if err != nil {
 		return err
 	}

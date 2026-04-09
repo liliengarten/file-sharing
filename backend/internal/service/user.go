@@ -77,8 +77,12 @@ func (s *UserService) GetProfile(ctx context.Context, userID string) ([]models.U
 	return profile, nil
 }
 
-func (s *UserService) GetLikes(ctx context.Context) ([]models.Pin, error) {
-	pins, err := s.pinRepo.GetLikes(ctx)
+func (s *UserService) GetLikes(ctx context.Context, page string) ([]models.Pin, error) {
+	if page == "" {
+		page = "1"
+	}
+
+	pins, err := s.pinRepo.GetLikes(ctx, page)
 	if err != nil {
 		return nil, err
 	}

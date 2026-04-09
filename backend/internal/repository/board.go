@@ -31,8 +31,13 @@ func (r *BoardRepository) HasRights(ctx context.Context, boardID string) error {
 	return nil
 }
 
-func (r *BoardRepository) Index(ctx context.Context) ([]models.Board, error) {
-	rows, err := r.pool.Query(ctx, "SELECT board_id FROM user_boards WHERE user_id = $1", ctx.Value("user"))
+func (r *BoardRepository) Index(ctx context.Context, page string) ([]models.Board, error) {
+	intPage, err := strconv.Atoi(page)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.pool.Query(ctx, "SELECT board_id FROM user_boards WHERE user_id = $1 ORDER BY id LIMIT $2 OFFSET $3", ctx.Value("user"), 10, (intPage-1)*10)
 	if err != nil {
 		return nil, err
 	}
@@ -81,13 +86,20 @@ func (r *BoardRepository) Create(ctx context.Context, board *models.Board) error
 
 	err = tx.QueryRow(ctx, "INSERT INTO boards (name, description, private) VALUES ($1, $2, $3) RETURNING id", board.Name, board.Description, board.Private).Scan(&board.ID)
 	if err != nil {
-		tx.Rollback(ctx)
+		rollbackErr := tx.Rollback(ctx)
+		if rollbackErr != nil {
+			return rollbackErr
+		}
 		return err
 	}
 
 	_, err = tx.Exec(ctx, "INSERT INTO user_boards (user_id, board_id, invited_by) VALUES ($1, $2, $3)", ctx.Value("user"), board.ID, ctx.Value("user"))
 	if err != nil {
-		tx.Rollback(ctx)
+		rollbackErr := tx.Rollback(ctx)
+		if rollbackErr != nil {
+			return rollbackErr
+		}
+
 		return err
 	}
 
@@ -107,13 +119,18 @@ func (r *BoardRepository) Remove(ctx context.Context, id string) error {
 	return nil
 }
 
-func (r *BoardRepository) GetPins(ctx context.Context, boardID string) ([]models.Pin, error) {
-	err := r.HasRights(ctx, boardID)
+func (r *BoardRepository) GetPins(ctx context.Context, boardID string, page string) ([]models.Pin, error) {
+	intPage, err := strconv.Atoi(page)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := r.pool.Query(ctx, "SELECT pin_id FROM board_pins WHERE board_id = $1", boardID)
+	err = r.HasRights(ctx, boardID)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.pool.Query(ctx, "SELECT pin_id FROM board_pins WHERE board_id = $1 ORDER BY pin_id LIMIT $2 OFFSET $3", boardID, intPage, (intPage-1)*10)
 	if err != nil {
 		return nil, err
 	}
@@ -166,13 +183,18 @@ func (r *BoardRepository) RemovePin(ctx context.Context, boardID string, pinID s
 	return nil
 }
 
-func (r *BoardRepository) GetAuthors(ctx context.Context, boardID string) ([]models.BoardAuthor, error) {
-	err := r.HasRights(ctx, boardID)
+func (r *BoardRepository) GetAuthors(ctx context.Context, boardID string, page string) ([]models.BoardAuthor, error) {
+	intPage, err := strconv.Atoi(page)
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := r.pool.Query(ctx, "SELECT user_id, invited_by FROM user_boards WHERE board_id = $1", boardID)
+	err = r.HasRights(ctx, boardID)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.pool.Query(ctx, "SELECT user_id, invited_by FROM user_boards WHERE board_id = $1 ORDER BY user_id LIMIT $2 OFFSET $3", boardID, intPage, (intPage-1)*10)
 	if err != nil {
 		return nil, err
 	}
