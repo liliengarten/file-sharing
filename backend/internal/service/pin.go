@@ -33,6 +33,19 @@ func (s *PinService) Index(ctx context.Context, page string) ([]models.Pin, erro
 	return pins, nil
 }
 
+func (s *PinService) UserPins(ctx context.Context, page string) ([]models.Pin, error) {
+	if page == "" {
+		page = "1"
+	}
+
+	pins, err := s.repo.Index(ctx, page)
+	if err != nil {
+		return nil, err
+	}
+
+	return pins, nil
+}
+
 func (s *PinService) GetPin(ctx context.Context, pinID string) ([]models.Pin, error) {
 	pin, err := s.repo.GetById(ctx, pinID)
 	if err != nil {
@@ -74,8 +87,17 @@ func (s *PinService) Update(ctx context.Context, pin *models.Pin) error {
 }
 
 func (s *PinService) Remove(ctx context.Context, pinID string, userID string) error {
-	err := s.repo.Remove(ctx, pinID, userID)
+	pin, err := s.repo.GetById(ctx, pinID)
+	if err != nil {
+		return err
+	}
 
+	err = s.repo.Remove(ctx, pinID, userID)
+	if err != nil {
+		return err
+	}
+
+	err = os.Remove("../../" + pin[0].Image)
 	if err != nil {
 		return err
 	}

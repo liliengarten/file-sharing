@@ -18,9 +18,8 @@ func NewUserHandler(service *service.UserService) *UserHandler {
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	var user models.User
+
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
@@ -31,7 +30,12 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	if validationErr != nil {
 		w.WriteHeader(http.StatusBadRequest)
 
-		json.NewEncoder(w).Encode(validationErr)
+		err = json.NewEncoder(w).Encode(validationErr)
+		if err != nil {
+			responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		return
 	}
 
@@ -45,18 +49,17 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
 	var user models.UserLogin
+
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	token, err := h.service.Login(r.Context(), user)
 	if err != nil {
-		responder.ErrorResponse(w, "Authentification failed", http.StatusBadRequest)
+		responder.ErrorResponse(w, "authentification failed", http.StatusBadRequest)
 		return
 	}
 

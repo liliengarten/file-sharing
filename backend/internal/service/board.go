@@ -10,12 +10,14 @@ import (
 type BoardService struct {
 	boardRepo *repository.BoardRepository
 	userRepo  *repository.UserRepository
+	pinRepo   *repository.PinRepository
 }
 
-func NewBoardService(br *repository.BoardRepository, ur *repository.UserRepository) *BoardService {
+func NewBoardService(br *repository.BoardRepository, ur *repository.UserRepository, pr *repository.PinRepository) *BoardService {
 	return &BoardService{
 		boardRepo: br,
 		userRepo:  ur,
+		pinRepo:   pr,
 	}
 }
 
@@ -25,6 +27,19 @@ func (s *BoardService) Index(ctx context.Context, page string) ([]models.Board, 
 	}
 
 	boards, err := s.boardRepo.Index(ctx, page)
+	if err != nil {
+		return nil, err
+	}
+
+	return boards, nil
+}
+
+func (s *BoardService) UserBoards(ctx context.Context, page string) ([]models.Board, error) {
+	if page == "" {
+		page = "1"
+	}
+
+	boards, err := s.boardRepo.UserBoards(ctx, page)
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +58,15 @@ func (s *BoardService) GetBoard(ctx context.Context, boardID string) ([]models.B
 
 func (s *BoardService) Create(ctx context.Context, board *models.Board) error {
 	err := s.boardRepo.Create(ctx, board)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *BoardService) Update(ctx context.Context, board *models.BoardUpdate) error {
+	err := s.boardRepo.Update(ctx, board)
 	if err != nil {
 		return err
 	}
@@ -73,7 +97,12 @@ func (s *BoardService) GetPins(ctx context.Context, boardID string, page string)
 }
 
 func (s *BoardService) AddPin(ctx context.Context, boardID string, pinID string) error {
-	err := s.boardRepo.AddPin(ctx, boardID, pinID)
+	_, err := s.pinRepo.GetById(ctx, pinID)
+	if err != nil {
+		return err
+	}
+
+	err = s.boardRepo.AddPin(ctx, boardID, pinID)
 	if err != nil {
 		return err
 	}

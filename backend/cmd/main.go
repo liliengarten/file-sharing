@@ -26,6 +26,7 @@ func setupRoutes(mux *http.ServeMux, userHandler *handlers.UserHandler, pinHandl
 	protectedMux.HandleFunc("GET /profile/{id}", userHandler.GetProfile)
 
 	protectedMux.HandleFunc("GET /pins", pinHandler.Index)
+	protectedMux.HandleFunc("GET /user/pins", pinHandler.UserPins)
 	protectedMux.HandleFunc("GET /pins/{id}", pinHandler.GetPin)
 	protectedMux.HandleFunc("POST /pins", pinHandler.Add)
 	protectedMux.HandleFunc("PATCH /pins/{id}", pinHandler.Update)
@@ -36,8 +37,10 @@ func setupRoutes(mux *http.ServeMux, userHandler *handlers.UserHandler, pinHandl
 	protectedMux.HandleFunc("DELETE /pins/{id}/like", pinHandler.UnlikePin)
 
 	protectedMux.HandleFunc("GET /boards", boardHandler.Index)
+	protectedMux.HandleFunc("GET /user/boards", boardHandler.UserBoards)
 	protectedMux.HandleFunc("GET /boards/{id}", boardHandler.GetBoard)
 	protectedMux.HandleFunc("POST /boards", boardHandler.Create)
+	protectedMux.HandleFunc("PATCH /boards/{id}", boardHandler.Update)
 	protectedMux.HandleFunc("DELETE /boards/{id}", boardHandler.Remove)
 
 	protectedMux.HandleFunc("GET /boards/{id}/pins", boardHandler.GetPins)
@@ -91,7 +94,7 @@ func main() {
 	userHandler := handlers.NewUserHandler(userService)
 
 	boardRepo := repository.NewBoardRepository(pool)
-	boardService := service.NewBoardService(boardRepo, userRepo)
+	boardService := service.NewBoardService(boardRepo, userRepo, pinRepo)
 	boardHandler := handlers.NewBoardHandler(boardService)
 
 	mux := http.NewServeMux()

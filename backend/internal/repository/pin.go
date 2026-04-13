@@ -38,6 +38,26 @@ func (r *PinRepository) Index(ctx context.Context, page string) ([]models.Pin, e
 	return pins, nil
 }
 
+func (r *PinRepository) UserPins(ctx context.Context, page string) ([]models.Pin, error) {
+	intPage, err := strconv.Atoi(page)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.pool.Query(ctx, "SELECT * FROM pins ORDER BY id WHERE owner_id = $1 LIMIT $2 OFFSET $3", ctx.Value("user"), 10, (intPage-1)*10)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	pins, err := pgx.CollectRows(rows, pgx.RowToStructByName[models.Pin])
+	if err != nil {
+		return nil, err
+	}
+
+	return pins, nil
+}
+
 func (r *PinRepository) SavePin(ctx context.Context, pin *models.Pin, userID string) error {
 	_, err := r.pool.Exec(ctx, "INSERT INTO pins (owner_id, image, description) VALUES ($1, $2, $3)", userID, pin.Image, pin.Description)
 	if err != nil {

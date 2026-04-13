@@ -7,6 +7,7 @@ import (
 	"liliengarten/filesharing/internal/service"
 	"liliengarten/filesharing/internal/validator"
 	"net/http"
+	"strconv"
 )
 
 type BoardHandler struct {
@@ -19,6 +20,15 @@ func NewBoardHandler(s *service.BoardService) *BoardHandler {
 
 func (h *BoardHandler) Index(w http.ResponseWriter, r *http.Request) {
 	boards, err := h.service.Index(r.Context(), r.URL.Query().Get("page"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+	}
+
+	responder.DataResponse(w, "Success", boards, http.StatusOK)
+}
+
+func (h *BoardHandler) UserBoards(w http.ResponseWriter, r *http.Request) {
+	boards, err := h.service.UserBoards(r.Context(), r.URL.Query().Get("page"))
 	if err != nil {
 		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 	}
@@ -58,6 +68,37 @@ func (h *BoardHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	responder.Response(w, "Board created successfully", http.StatusCreated)
+}
+
+func (h *BoardHandler) Update(w http.ResponseWriter, r *http.Request) {
+	var board models.BoardUpdate
+	err := json.NewDecoder(r.Body).Decode(&board)
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	validationErr := validator.Validate(board)
+	if validationErr != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(validationErr)
+		return
+	}
+
+	boardID, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	board.ID = boardID
+
+	err = h.service.Update(r.Context(), &board)
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	responder.Response(w, "Board updated successfully", http.StatusCreated)
 }
 
 func (h *BoardHandler) Remove(w http.ResponseWriter, r *http.Request) {

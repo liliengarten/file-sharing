@@ -28,6 +28,15 @@ func (h *PinHandler) Index(w http.ResponseWriter, r *http.Request) {
 	responder.DataResponse(w, "Success", pins, http.StatusOK)
 }
 
+func (h *PinHandler) UserPins(w http.ResponseWriter, r *http.Request) {
+	pins, err := h.service.UserPins(r.Context(), r.URL.Query().Get("page"))
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+	}
+
+	responder.DataResponse(w, "Success", pins, http.StatusOK)
+}
+
 func (h *PinHandler) GetPin(w http.ResponseWriter, r *http.Request) {
 	pin, err := h.service.GetPin(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -73,15 +82,17 @@ func (h *PinHandler) Add(w http.ResponseWriter, r *http.Request) {
 
 func (h *PinHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var pin models.Pin
-	pin.Description = r.PostFormValue("description")
+	err := json.NewDecoder(r.Body).Decode(&pin)
+	if err != nil {
+		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
+	}
 
 	pinID, err := strconv.Atoi(r.PathValue("id"))
-	pin.ID = pinID
-
 	if err != nil {
 		responder.ErrorResponse(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	pin.ID = pinID
 
 	validationErr := validator.Validate(pin)
 	if validationErr != nil {

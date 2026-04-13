@@ -38,7 +38,6 @@ func generateToken(userID int) (string, error) {
 
 func (s *UserService) Register(ctx context.Context, user models.User) error {
 	hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-
 	user.Password = string(hashed)
 
 	err = s.userRepo.Create(ctx, user)

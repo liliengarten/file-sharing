@@ -26,18 +26,34 @@ func (r *UserRepository) GetById(ctx context.Context, id string) ([]models.User,
 
 	user, err := pgx.CollectRows(rows, pgx.RowToStructByName[models.User])
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.New("user not found")
-		}
-
 		return nil, err
+	}
+	if len(user) == 0 {
+		return nil, errors.New("user not found")
 	}
 
 	return user, nil
 }
 
 func (r *UserRepository) Create(ctx context.Context, user models.User) error {
-	_, err := r.pool.Exec(ctx,
+	var exists bool
+	err := r.pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)", user.Email).Scan(&exists)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.New("user with this email already exists")
+	}
+
+	err = r.pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM users WHERE username = $1)", user.Username).Scan(&exists)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.New("user with this username already exists")
+	}
+
+	_, err = r.pool.Exec(ctx,
 		"INSERT INTO USERS (first_name, last_name, username, email, password) VALUES ($1, $2, $3, $4, $5)",
 		user.FirstName, user.LastName, user.Username, user.Email, user.Password,
 	)

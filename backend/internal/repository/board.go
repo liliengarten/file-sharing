@@ -37,7 +37,26 @@ func (r *BoardRepository) Index(ctx context.Context, page string) ([]models.Boar
 		return nil, err
 	}
 
-	rows, err := r.pool.Query(ctx, "SELECT board_id FROM user_boards WHERE user_id = $1 ORDER BY id LIMIT $2 OFFSET $3", ctx.Value("user"), 10, (intPage-1)*10)
+	rows, err := r.pool.Query(ctx, "SELECT * FROM boards WHERE private = false ORDER BY id LIMIT $1 OFFSET $2", 10, (intPage-1)*10)
+	if err != nil {
+		return nil, err
+	}
+
+	boards, err := pgx.CollectRows(rows, pgx.RowToStructByName[models.Board])
+	if err != nil {
+		return nil, err
+	}
+
+	return boards, nil
+}
+
+func (r *BoardRepository) UserBoards(ctx context.Context, page string) ([]models.Board, error) {
+	intPage, err := strconv.Atoi(page)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.pool.Query(ctx, "SELECT board_id FROM user_boards WHERE user_id = $1 ORDER BY user_id LIMIT $2 OFFSET $3", ctx.Value("user"), 10, (intPage-1)*10)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +125,44 @@ func (r *BoardRepository) Create(ctx context.Context, board *models.Board) error
 	return tx.Commit(ctx)
 }
 
+func (r *BoardRepository) Update(ctx context.Context, board *models.BoardUpdate) error {
+	boardID := strconv.Itoa(board.ID)
+	err := r.HasRights(ctx, boardID)
+	if err != nil {
+		return err
+	}
+
+	rows, err := r.pool.Query(ctx, "SELECT * FROM boards WHERE id = $1", board.ID)
+	if err != nil {
+		return err
+	}
+
+	currentBoard, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[models.Board])
+	if err != nil {
+		return err
+	}
+
+	if board.Name == "" {
+		board.Name = currentBoard.Name
+	} else if board.Description == "" {
+		board.Description = currentBoard.Description
+	}
+
+	_, err = r.pool.Exec(ctx, "UPDATE boards SET name = $1, description = $2, private = $3", board.Name, board.Description, board.Private)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (r *BoardRepository) Remove(ctx context.Context, id string) error {
-	commandTag, err := r.pool.Exec(ctx, "DELETE FROM user_boards WHERE board_id = $1 and user_id = $2", id, ctx.Value("user"), 1)
+	err := r.HasRights(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	commandTag, err := r.pool.Exec(ctx, "DELETE FROM boards WHERE id = $1", id)
 	if err != nil {
 		return err
 	}
@@ -157,6 +212,16 @@ func (r *BoardRepository) AddPin(ctx context.Context, boardID string, pinID stri
 		return err
 	}
 
+	var exists bool
+	err = r.pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM board_pins WHERE board_id = $1 and pin_id = $2)", boardID, pinID).Scan(&exists)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		return errors.New("pin already added")
+	}
+
 	_, err = r.pool.Exec(ctx, "INSERT INTO board_pins (pin_id, board_id) VALUES ($1, $2)", pinID, boardID)
 	if err != nil {
 		return err
@@ -194,7 +259,7 @@ func (r *BoardRepository) GetAuthors(ctx context.Context, boardID string, page s
 		return nil, err
 	}
 
-	rows, err := r.pool.Query(ctx, "SELECT user_id, invited_by FROM user_boards WHERE board_id = $1 ORDER BY user_id LIMIT $2 OFFSET $3", boardID, intPage, (intPage-1)*10)
+	rows, err := r.pool.Query(ctx, "SELECT user_id, invited_by FROM user_boards WHERE board_id = $1 ORDER BY user_id LIMIT $2 OFFSET $3", boardID, 10, (intPage-1)*10)
 	if err != nil {
 		return nil, err
 	}
